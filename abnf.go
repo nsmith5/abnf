@@ -2,7 +2,6 @@ package abnf
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"strings"
 )
@@ -17,6 +16,9 @@ type Rule func(input []byte) *Match
 
 func Byte(name string, target byte) Rule {
 	return func(input []byte) *Match {
+		if len(input) == 0 {
+			return nil
+		}
 		if input[0] == target {
 			return &Match{
 				Rule:   name,
@@ -30,6 +32,9 @@ func Byte(name string, target byte) Rule {
 
 func ByteRange(name string, start, stop byte) Rule {
 	return func(input []byte) *Match {
+		if len(input) == 0 {
+			return nil
+		}
 		if input[0] >= start && input[0] <= stop {
 			return &Match{
 				Rule:   name,
@@ -58,7 +63,7 @@ func String(name, target string, caseSensitive bool) Rule {
 		}
 	}
 	return func(input []byte) *Match {
-		if len(target) < len(input) {
+		if len(target) > len(input) {
 			return nil
 		}
 		if strings.ToUpper(target) == strings.ToUpper(string(input[:len(target)])) {
@@ -123,7 +128,7 @@ func Repeat(name string, min, max int, rule Rule) Rule {
 		var matches []Match
 		temp := input
 		matched := 0
-		for {
+		for len(temp) != 0 {
 			match := rule(temp)
 			if match == nil {
 				break
@@ -152,7 +157,7 @@ func Option(name string, rule Rule) Rule {
 		if match == nil {
 			return &Match{
 				Rule:   name,
-				Result: nil,
+				Result: input[:0],
 				Child:  nil,
 			}
 		}

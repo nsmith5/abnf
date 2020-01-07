@@ -1,38 +1,97 @@
-package main
+package abnf
 
-// CORE rules for the ABNF grammar
-var (
-	ALPHA  = Or("ALPHA", ByteRange("A-Z", 'A', 'Z'), ByteRange("a-z", 'a', 'z'))
-	BIT    = Or("BIT", Byte("0", '0'), Byte("1", '0'))
-	CHAR   = ByteRange("CHAR", 0x01, 0x7F)
-	CR     = Byte("CR", 0x0D)
-	CRLF   = Sequence("CRLF", CR, LF)
-	CTL    = Or("CTL", ByteRange("NULL - US", 0x00, 0x1F), Byte("DEL", 0x7F))
-	DIGIT  = ByteRange("DIGIT", '0', '9')
-	DQUOTE = Byte("DQUOTE", '"')
-	HEXDIG = Or(
-		"HEXDIG",
-		DIGIT,
-		String("A", "A", false),
-		String("B", "B", false),
-		String("C", "C", false),
-		String("D", "D", false),
-		String("E", "E", false),
-		String("F", "F", false),
-	)
-	HTAB  = Byte("HTAB", 0x09)
-	LF    = Byte("LF", 0x0A)
-	LWSP  = Repeat("LWSP", -1, -1, Or("LWSP", WSP, Sequence("LWSP", CRLF, WSP)))
-	OCTET = ByteRange("OCTECT", 0x00, 0xFF)
-	SP    = Byte("SP", ' ')
-	VCHAR = ByteRange("VCHAR", 0x21, 0x7E)
-	WSP   = Or("WSP", SP, HTAB)
-)
+// group = "(" *c-wsp alternation *c-wsp ")"
+func group(input []byte) *Match {
+	return Sequence(
+		`group`,
+		String("(", "(", false),
+		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
+		alternation,
+		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
+		String(")", ")", false),
+	)(input)
+}
+
+// option = "[" *c-wsp alternation *c-wsp "]"
+func option(input []byte) *Match {
+	return Sequence(
+		`option`,
+		String(`[`, `[`, false),
+		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
+		alternation,
+		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
+		String(`]`, `]`, false),
+	)(input)
+}
+
+// alternation = concatenation *(*c-wsp "/" *c-wsp concatenation)
+func alternation(input []byte) *Match {
+	return Sequence(
+		"alternation",
+		concatenation,
+		Repeat(
+			`*(*c-wsp "/" *c-wsp concatenation)`,
+			-1,
+			-1,
+			Sequence(
+				`*c-wsp "/" *c-wsp concatenation`,
+				Repeat("*c-wsp", -1, -1, commentOrWhitespace),
+				String("/", "/", false),
+				Repeat("*c-wsp", -1, -1, commentOrWhitespace),
+				concatenation,
+			),
+		),
+	)(input)
+}
+
+// concatenation = repetition *(1*c-wsp repetition)
+func concatenation(input []byte) *Match {
+	return Sequence(
+		`concatenation`,
+		repetition,
+		Repeat(
+			`*(1*c-wsp repetition)`,
+			-1,
+			-1,
+			Sequence(
+				`1*c-wsp repetition`,
+				Repeat(`1*c-wsp`, 1, -1, commentOrWhitespace),
+				repetition,
+			),
+		),
+	)(input)
+}
+
+// repetition = [repeat] element
+func repetition(input []byte) *Match {
+	return Sequence(`repetition`, Option(`[repeat]`, repeat), element)(input)
+}
+
+// repeat = 1*DIGIT / (*DIGIT "*" *DIGIT)
+func repeat(input []byte) *Match {
+	return Or(
+		`repeat`,
+		Sequence(
+			`*DIGIT "*" *DIGIT`,
+			Repeat(`*DIGIT`, -1, -1, DIGIT),
+			String("*", "*", false),
+			Repeat(`*DIGIT`, -1, -1, DIGIT),
+		),
+		Repeat(`1*DIGIT`, 1, -1, DIGIT), // NOTE: we specifically try to match the 1*DIGIT second because the first case is more specific
+	)(input)
+}
+
+// element = rulename / group / option / char-val / num-val / prose-val
+func element(input []byte) *Match {
+	return Or(`element`, ruleName, group, option, charVal, numVal, proseVal)(input)
+}
 
 // Rules of the ABNF grammar
 var (
-	// rulelist = 1*( rule / (*c-wsp c-nl) )
-	ruleList = Repeat(
+	// rulelist = 1*( rule / (*WSP c-nl) )
+	// NOTE: this takes into account Errata 3076
+	// https://www.rfc-editor.org/errata/eid3076
+	RuleList = Repeat(
 		`rule-list`,
 		1,
 		-1,
@@ -41,7 +100,7 @@ var (
 			rule,
 			Sequence(
 				`(*c-wsp c-nil)`,
-				Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
+				Repeat(`*WSP`, -1, -1, WSP),
 				commentOrNewline,
 			),
 		),
@@ -55,10 +114,10 @@ var (
 		`rulename`,
 		ALPHA,
 		Repeat(
-			`rulename`,
+			`*(ALPHA / DIGIT / "-")`,
 			-1,
 			-1,
-			Or("rulename", ALPHA, DIGIT, String("-", "-", false)),
+			Or(`ALPHA / DIGIT / "-"`, ALPHA, DIGIT, String("-", "-", false)),
 		),
 	)
 
@@ -71,10 +130,13 @@ var (
 			String("=", "=", false),
 			String("=/", "=/", false),
 		),
+		Repeat("*c-wsp", -1, -1, commentOrWhitespace),
 	)
 
-	// elements = alternation *c-wsp
-	elements = Sequence("elements", alternation, Repeat("*c-wsp", -1, -1, commentOrWhitespace))
+	// elements = alternation *WSP
+	// NOTE: this takes into account Errata 2968
+	// https://www.rfc-editor.org/errata/eid2968
+	elements = Sequence("elements", alternation, Repeat("*WSP", -1, -1, WSP))
 
 	// c-wsp = WSP / (c-nl WSP)
 	commentOrWhitespace = Or("c-wsp", WSP, commentOrNewline)
@@ -98,79 +160,6 @@ var (
 		),
 		CRLF,
 	)
-
-	// alternation = concatenation *(*c-wsp "/" *c-wsp concatenation)
-	alternation = Sequence(
-		"alternation",
-		concatenation,
-		Repeat(
-			`*(*c-wsp "/" *c-wsp concatenation)`,
-			-1,
-			-1,
-			Sequence(
-				`*c-wsp "/" *c-wsp concatenation`,
-				Repeat("*c-wsp", -1, -1, commentOrWhitespace),
-				String("/", "/", false),
-				Repeat("*c-wsp", -1, -1, commentOrWhitespace),
-				concatenation,
-			),
-		),
-	)
-
-	// concatenation = repetition *(1*c-wsp repetition)
-	concatenation = Sequence(
-		`concatenation`,
-		repetition,
-		Repeat(
-			`*(1*c-wsp repetition)`,
-			-1,
-			-1,
-			Sequence(
-				`1*c-wsp repetition`,
-				Repeat(`1*c-wsp`, 1, -1, commentOrWhitespace),
-				repetition,
-			),
-		),
-	)
-
-	// repetition = [repeat] element
-	repetition = Sequence(`repetition`, Option(`[repeat]`, repeat), element)
-
-	// repeat = 1*DIGIT / (*DIGIT "*" *DIGIT)
-	repeat = Or(
-		`repeat`,
-		Repeat(`1*DIGIT`, 1, -1, DIGIT),
-		Sequence(
-			`*DIGIT "*" *DIGIT`,
-			Repeat(`*DIGIT`, -1, -1, DIGIT),
-			String("*", "*", false),
-			Repeat(`*DIGIT`, -1, -1, DIGIT),
-		),
-	)
-
-	// element = rulename / group / option / char-val / num-val / prose-val
-	element = Or(`element`, ruleName, group, option, charVal, numVal, proseVal)
-
-	// group = "(" *c-wsp alternation *c-wsp ")"
-	group = Sequence(
-		`group`,
-		String("(", "(", false),
-		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
-		alternation,
-		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
-		String(")", ")", false),
-	)
-
-	// option = "[" *c-wsp alternation *c-wsp "]"
-	option = Sequence(
-		`option`,
-		String(`[`, `[`, false),
-		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
-		alternation,
-		Repeat(`*c-wsp`, -1, -1, commentOrWhitespace),
-		String(`]`, `]`, false),
-	)
-
 	// char-val = DQUOTE *(%x20-21 / %x23-7E) DQUOTE
 	charVal = Sequence(
 		`char-val`,
