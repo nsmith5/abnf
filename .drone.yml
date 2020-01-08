@@ -1,0 +1,14 @@
+kind: pipeline
+name: abnf
+steps:
+- name: unit-test
+  image: golang:1.13
+  commands:
+  - go test -race -cover -covermode=atomic -coverprofile=coverage.out ./...
+- name: coverage
+  image: plugins/codecov
+  settings:
+    token:
+      from_secret: codecov_token
+    files:
+    - coverage.out
