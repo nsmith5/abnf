@@ -7,8 +7,12 @@ import (
 	"github.com/nsmith5/abnf"
 )
 
+const grammar = `
+this = %d31
+`
+
 func main() {
-	m := abnf.RuleList([]byte("this = %d31\r\n"))
+	m := abnf.RuleList([]byte(grammar))
 	s, _ := json.MarshalIndent(m, "", "  ")
 	fmt.Println(string(s))
 }

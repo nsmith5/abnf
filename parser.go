@@ -96,10 +96,10 @@ var (
 		1,
 		-1,
 		Or(
-			`rule-list`,
+			`(rule / (*WSP c-nl))`,
 			rule,
 			Sequence(
-				`(*c-wsp c-nil)`,
+				`(*WSP c-nl)`,
 				Repeat(`*WSP`, -1, -1, WSP),
 				commentOrNewline,
 			),
@@ -142,9 +142,11 @@ var (
 	commentOrWhitespace = Or("c-wsp", WSP, commentOrNewline)
 
 	// c-nl = comment / CRLF
-	commentOrNewline = Or("c-nl", comment, CRLF)
+	// NOTE: Modified to allow just \n instead of \r\n
+	commentOrNewline = Or("c-nl", comment, Or("CRLF / LF", CRLF, LF))
 
 	//  comment = ";" *(WSP / VCHAR) CRLF
+	// NOTE: Modified to allow just \n instead of \r\n
 	comment = Sequence(
 		"comment",
 		String(";", ";", true),
@@ -158,7 +160,7 @@ var (
 				VCHAR,
 			),
 		),
-		CRLF,
+		Or("CRLF / LF", CRLF, LF),
 	)
 	// char-val = DQUOTE *(%x20-21 / %x23-7E) DQUOTE
 	charVal = Sequence(
