@@ -75,7 +75,7 @@ func repeat(input []byte) *Match {
 		Sequence(
 			`*DIGIT "*" *DIGIT`,
 			Repeat(`*DIGIT`, -1, -1, DIGIT),
-			String("*", "*", false),
+			String("*", "*", true),
 			Repeat(`*DIGIT`, -1, -1, DIGIT),
 		),
 	)(input)
@@ -117,7 +117,7 @@ var (
 			`*(ALPHA / DIGIT / "-")`,
 			-1,
 			-1,
-			Or(`ALPHA / DIGIT / "-"`, ALPHA, DIGIT, String("-", "-", false)),
+			Or(`ALPHA / DIGIT / "-"`, ALPHA, DIGIT, String("-", "-", true)),
 		),
 	)
 
@@ -127,8 +127,8 @@ var (
 		Repeat("*c-wsp", -1, -1, commentOrWhitespace),
 		Or(
 			`("=" / "=/")`,
-			String("=", "=", false),
-			String("=/", "=/", false),
+			String("=", "=", true),
+			String("=/", "=/", true),
 		),
 		Repeat("*c-wsp", -1, -1, commentOrWhitespace),
 	)
@@ -147,7 +147,7 @@ var (
 	//  comment = ";" *(WSP / VCHAR) CRLF
 	comment = Sequence(
 		"comment",
-		String(";", ";", false),
+		String(";", ";", true),
 		Repeat(
 			`*(WSP / VCHAR)`,
 			-1,
@@ -180,7 +180,7 @@ var (
 	//num-val =  "%" (bin-val / dec-val / hex-val)
 	numVal = Sequence(
 		`num-val`,
-		String(`%`, `%`, false),
+		String(`%`, `%`, true),
 		Or(`bin-val / dec-val / hex-val`, binVal, decVal, hexVal),
 	)
 
@@ -200,9 +200,9 @@ var (
 					`1*("." 1*BIT)`,
 					1,
 					-1,
-					Sequence(`"." 1*BIT`, String(`.`, `.`, false), Repeat(`1*BIT`, 1, -1, BIT)),
+					Sequence(`"." 1*BIT`, String(`.`, `.`, true), Repeat(`1*BIT`, 1, -1, BIT)),
 				),
-				Sequence(`"-" 1*BIT`, String(`-`, `-`, false), Repeat(`1*BIT`, 1, -1, BIT)),
+				Sequence(`"-" 1*BIT`, String(`-`, `-`, true), Repeat(`1*BIT`, 1, -1, BIT)),
 			),
 		),
 	)
@@ -221,9 +221,9 @@ var (
 					`1*("." 1*DIGIT)`,
 					1,
 					-1,
-					Sequence(`"." 1*DIGIT`, String(`.`, `.`, false), Repeat(`1*DIGIT`, 1, -1, DIGIT)),
+					Sequence(`"." 1*DIGIT`, String(`.`, `.`, true), Repeat(`1*DIGIT`, 1, -1, DIGIT)),
 				),
-				Sequence(`"-" 1*DIGIT`, String(`-`, `-`, false), Repeat(`1*DIGIT`, 1, -1, DIGIT)),
+				Sequence(`"-" 1*DIGIT`, String(`-`, `-`, true), Repeat(`1*DIGIT`, 1, -1, DIGIT)),
 			),
 		),
 	)
@@ -242,9 +242,9 @@ var (
 					`1*("." 1*HEXDIG)`,
 					1,
 					-1,
-					Sequence(`"." 1*HEXDIG`, String(`.`, `.`, false), Repeat(`1*HEXDIG`, 1, -1, HEXDIG)),
+					Sequence(`"." 1*HEXDIG`, String(`.`, `.`, true), Repeat(`1*HEXDIG`, 1, -1, HEXDIG)),
 				),
-				Sequence(`"-" 1*HEXDIG`, String(`-`, `-`, false), Repeat(`1*HEXDIG`, 1, -1, HEXDIG)),
+				Sequence(`"-" 1*HEXDIG`, String(`-`, `-`, true), Repeat(`1*HEXDIG`, 1, -1, HEXDIG)),
 			),
 		),
 	)
@@ -256,7 +256,7 @@ var (
 	//               ;  last resort
 	proseVal = Sequence(
 		`prose-val`,
-		String(`<`, `<`, false),
+		String(`<`, `<`, true),
 		Repeat(
 			`*(%x20-3D / %x3F-7E)`,
 			-1,
@@ -267,6 +267,6 @@ var (
 				ByteRange(`%x3F-7E`, 0x3F, 0x7E),
 			),
 		),
-		String(`>`, `>`, false),
+		String(`>`, `>`, true),
 	)
 )
