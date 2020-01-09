@@ -71,13 +71,13 @@ func repetition(input []byte) *Match {
 func repeat(input []byte) *Match {
 	return Or(
 		`repeat`,
+		Repeat(`1*DIGIT`, 1, -1, DIGIT),
 		Sequence(
 			`*DIGIT "*" *DIGIT`,
 			Repeat(`*DIGIT`, -1, -1, DIGIT),
 			String("*", "*", false),
 			Repeat(`*DIGIT`, -1, -1, DIGIT),
 		),
-		Repeat(`1*DIGIT`, 1, -1, DIGIT), // NOTE: we specifically try to match the 1*DIGIT second because the first case is more specific
 	)(input)
 }
 

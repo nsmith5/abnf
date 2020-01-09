@@ -101,14 +101,29 @@ func Sequence(name string, rules ...Rule) Rule {
 
 func Or(name string, rules ...Rule) Rule {
 	return func(input []byte) *Match {
+		// We take a longest possible match approach here. Look at all
+		// candidate matches and choose the longest of all matches
+		var (
+			length int
+			match  *Match
+		)
+
 		for _, rule := range rules {
-			match := rule(input)
-			if match != nil {
-				return &Match{
-					Rule:   name,
-					Result: match.Result,
-					Child:  []Match{*match},
-				}
+			current := rule(input)
+			if current == nil {
+				continue
+			}
+			if len(current.Result) > length {
+				match = current
+				length = len(current.Result)
+			}
+		}
+
+		if match != nil {
+			return &Match{
+				Rule:   name,
+				Result: match.Result,
+				Child:  []Match{*match},
 			}
 		}
 		return nil
