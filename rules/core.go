@@ -1,9 +1,9 @@
 package rules
 
 // Core is a symbol table of the core rules defined in ABNF
-var Core = map[string]*Rule{}
+var Core = make(map[string]*Rule)
 
-var ruleNames = [...]string{
+var coreRuleNames = [...]string{
 	"ALPHA",
 	"BIT",
 	"CHAR",
@@ -26,7 +26,7 @@ func init() {
 	// Fill up the symbol table first. This is helpful because it
 	// means rules can reference other rules that haven't been defined
 	// yet.
-	for _, ruleName := range ruleNames {
+	for _, ruleName := range coreRuleNames {
 		Core[ruleName] = new(Rule)
 	}
 
