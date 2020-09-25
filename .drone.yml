@@ -2,7 +2,7 @@ kind: pipeline
 name: abnf
 steps:
 - name: unit-test
-  image: golang:1.13
+  image: golang:1.15
   commands:
   - go test -race -cover -covermode=atomic -coverprofile=coverage.out ./...
 - name: coverage
