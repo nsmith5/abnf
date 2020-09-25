@@ -1,9 +1,6 @@
 package rules
 
-// ABNF Grammar
-var ABNF Rule
-
-func init() {
+func NewABNF() Rule {
 	rules := [...]string{
 		"rulelist",
 		"rule",
@@ -44,7 +41,7 @@ func init() {
 		`rulename defined-as elements CRLF`,
 		table[`rulename`],
 		table[`defined-as`],
-		table[`elements`],
+		table[`alternation`],
 		table[`CRLF`],
 	)
 
@@ -83,7 +80,15 @@ func init() {
 
 	{
 		a := NewOption(`[repeat]`, table[`repeat`])
-		*table[`repeat`] = NewConcatenation(`[repeat] element`, &a, table[`element`])
+		*table[`repetition`] = NewConcatenation(`[repeat] element`, &a, table[`element`])
+	}
+
+	{
+		bb := MustString(`"*"`)
+		ba := NewVariableRepetition(`*DIGIT`, 0, -1, table[`DIGIT`])
+		b := NewConcatenation(`*DIGIT "*" *DIGIT`, &ba, &bb, &ba)
+		a := NewVariableRepetition(`1*DIGIT`, 1, -1, table[`DIGIT`])
+		*table[`repeat`] = NewAlternation(`1*DIGIT / (*DIGIT "*" *DIGIT)`, &a, &b)
 	}
 
 	*table[`element`] = NewAlternation(`rulename / group / option / char-val / num-val`, table[`rulename`], table[`group`], table[`char-val`], table[`num-val`])
@@ -158,4 +163,6 @@ func init() {
 		a := MustString(`"x"`)
 		*table[`hex-val`] = NewConcatenation(`"x" 1*HEXDIG [ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]`, &a, &b, &c)
 	}
+
+	return *table[`rulelist`]
 }
