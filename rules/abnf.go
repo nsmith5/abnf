@@ -85,4 +85,77 @@ func init() {
 		a := NewOption(`[repeat]`, table[`repeat`])
 		*table[`repeat`] = NewConcatenation(`[repeat] element`, &a, table[`element`])
 	}
+
+	*table[`element`] = NewAlternation(`rulename / group / option / char-val / num-val`, table[`rulename`], table[`group`], table[`char-val`], table[`num-val`])
+
+	{
+		a := MustString(`"("`)
+		b := MustString(`")"`)
+		*table[`group`] = NewConcatenation(`"(" SP alternation SP ")"`, &a, table[`SP`], table[`alternation`], table[`SP`], &b)
+	}
+
+	{
+		a := MustString(`"["`)
+		b := MustString(`"]"`)
+		*table[`option`] = NewConcatenation(`"[" SP alternation SP "]"`, &a, table[`SP`], table[`alternation`], table[`SP`], &b)
+	}
+
+	{
+		d := MustValueRange(`%x23-7E`)
+		c := MustValueRange(`%x20-21`)
+		b := NewAlternation(`%x20-21 / %x23-7E`, &c, &d)
+		a := NewVariableRepetition(`*(%x20-21 / %x23-7E)`, 0, -1, &b)
+		*table[`char-val`] = NewConcatenation(`DQUOTE *(%x20-21 / %x23-7E) DQUOTE`, table[`DQUOTE`], &a, table[`DQUOTE`])
+	}
+
+	{
+		b := NewAlternation(`bin-val / dec-val / hex-val`, table[`bin-val`], table[`dec-val`], table[`hex-val`])
+		a := MustString(`"%"`)
+		*table[`num-val`] = NewConcatenation(`"%" (bin-val / dec-val / hex-val)`, &a, &b)
+	}
+
+	{
+		cabb := NewVariableRepetition(`1*BIT`, 1, -1, table[`BIT`])
+		caba := MustString(`"-"`)
+		cab := NewConcatenation(`"-" 1*BIT`, &caba, &cabb)
+		caaab := NewVariableRepetition(`1*BIT`, 1, -1, table[`BIT`])
+		caaaa := MustString(`"."`)
+		caaa := NewConcatenation(`"." 1*BIT`, &caaaa, &caaab)
+		caa := NewVariableRepetition(`1*("." 1*BIT)`, 1, -1, &caaa)
+		ca := NewAlternation(`1*("." 1*BIT) / ("-" 1*BIT)`, &caa, &cab)
+		c := NewOption(`[ 1*("." 1*BIT) / ("-" 1*BIT) ]`, &ca)
+		b := NewVariableRepetition(`1*BIT`, 1, -1, table[`BIT`])
+		a := MustString(`"b"`)
+		*table[`bin-val`] = NewConcatenation(`"b" 1*BIT [ 1*("." 1*BIT) / ("-" 1*BIT) ]`, &a, &b, &c)
+	}
+
+	{
+		cabb := NewVariableRepetition(`1*DIGIT`, 1, -1, table[`DIGIT`])
+		caba := MustString(`"-"`)
+		cab := NewConcatenation(`"-" 1*DIGIT`, &caba, &cabb)
+		caaab := NewVariableRepetition(`1*DIGIT`, 1, -1, table[`DIGIT`])
+		caaaa := MustString(`"."`)
+		caaa := NewConcatenation(`"." 1*DIGIT`, &caaaa, &caaab)
+		caa := NewVariableRepetition(`1*("." 1*DIGIT)`, 1, -1, &caaa)
+		ca := NewAlternation(`1*("." 1*DIGIT) / ("-" 1*DIGIT)`, &caa, &cab)
+		c := NewOption(`[ 1*("." 1*DIGIT) / ("-" 1*DIGIT) ]`, &ca)
+		b := NewVariableRepetition(`1*DIGIT`, 1, -1, table[`DIGIT`])
+		a := MustString(`"d"`)
+		*table[`dec-val`] = NewConcatenation(`"d" 1*DIGIT [ 1*("." 1*DIGIT) / ("-" 1*DIGIT) ]`, &a, &b, &c)
+	}
+
+	{
+		cabb := NewVariableRepetition(`1*HEXDIG`, 1, -1, table[`HEXDIG`])
+		caba := MustString(`"-"`)
+		cab := NewConcatenation(`"-" 1*HEXDIG`, &caba, &cabb)
+		caaab := NewVariableRepetition(`1*HEXDIG`, 1, -1, table[`HEXDIG`])
+		caaaa := MustString(`"."`)
+		caaa := NewConcatenation(`"." 1*HEXDIG`, &caaaa, &caaab)
+		caa := NewVariableRepetition(`1*("." 1*HEXDIG)`, 1, -1, &caaa)
+		ca := NewAlternation(`1*("." 1*HEXDIG) / ("-" 1*HEXDIG)`, &caa, &cab)
+		c := NewOption(`[ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]`, &ca)
+		b := NewVariableRepetition(`1*HEXDIG`, 1, -1, table[`HEXDIG`])
+		a := MustString(`"x"`)
+		*table[`hex-val`] = NewConcatenation(`"x" 1*HEXDIG [ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]`, &a, &b, &c)
+	}
 }
